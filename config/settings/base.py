@@ -22,8 +22,14 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     
-    # Local
+    # Local apps
+    'core', 
     'apps.users',
+    'apps.accounts',
+    'apps.farms',
+    'apps.catalog',
+    'apps.transactions',
+    'apps.operations',
 ]
 
 MIDDLEWARE = [
@@ -62,6 +68,9 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
     ),
     # S1-15: Custom Exception Handler
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',

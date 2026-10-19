@@ -42,3 +42,31 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True # This ensures no database table is created for BaseModel itself
+
+
+class AuditEvent(models.Model):
+    """
+    Append-only log for important actions (role changes, farm creation, etc.).
+    """
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.PROTECT, 
+        help_text="The user who performed the action."
+    )
+    farm = models.ForeignKey(
+        'farms.Farm', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="The farm context, if applicable."
+    )
+    action = models.CharField(max_length=100, help_text="e.g., 'role_change', 'farm_created'")
+    details = models.JSONField(default=dict, blank=True, help_text="Stores previous/new values or context.")
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'audit_events'
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.actor.email} - {self.action} at {self.timestamp}"
