@@ -69,15 +69,18 @@ class LoginView(APIView):
             return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
 
 class LogoutView(APIView):
+    # FIX: Added IsAuthenticated to ensure only logged-in users can log out
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
         logout(request)
-        return Response({"message": "Logged out successfully."})
+        return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
 
 class MeView(APIView):
+    # FIX: Added IsAuthenticated to protect user profile data
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
-        if not request.user.is_authenticated:
-            return Response({"error": "Not authenticated."}, status=status.HTTP_401_UNAUTHORIZED)
-        
         user = request.user
         membership = Membership.objects.filter(user=user).first()
         

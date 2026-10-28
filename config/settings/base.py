@@ -9,6 +9,9 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.environ.get('SECRET_KEY', 'unsafe-default-key')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+# 1. ALLOWED_HOSTS: Add your laptop's local IP so it accepts requests from the network
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.5.5', '0.0.0.0']
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -16,14 +19,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # Third-party
     'rest_framework',
     'corsheaders',
     'drf_spectacular',
-    
+
     # Local apps
-    'core', 
+    'core',
     'apps.users',
     'apps.accounts',
     'apps.farms',
@@ -33,9 +36,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Keep first: must run before anything that can return a response
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -62,7 +65,26 @@ TEMPLATES = [
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+# 2. CORS CONFIGURATION
+# Allow the frontend origins (5500 = VS Code Live Server / python http.server)
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://192.168.5.8:3000",
+    "http://192.168.5.8:5173",
+]
+
+# 3. CRITICAL for Session/Cookie Authentication across different origins
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+]
+
+CSRF_COOKIE_HTTPONLY = False   # JS must be able to read csrftoken
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -72,8 +94,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
     ),
-    # S1-15: Custom Exception Handler
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    # Point 6: Consistent pagination and ordering
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': (
+        'rest_framework.filters.OrderingFilter',
+    ),
 }
 
 SPECTACULAR_SETTINGS = {

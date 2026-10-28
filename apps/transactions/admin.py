@@ -1,17 +1,32 @@
 from django.contrib import admin
-from .models import Purchase, Sale, Expense
+from .models import Purchase, PurchaseLine, Sale, SaleLine, Expense
 
-@admin.register(Purchase)
+# --- Purchase Admin ---
+class PurchaseLineInline(admin.TabularInline):
+    model = PurchaseLine
+    extra = 1
+
 class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ('farm', 'supplier', 'item', 'quantity', 'total_cost', 'event_date', 'classification')
-    list_filter = ('classification', 'farm')
+    list_display = ['id', 'farm', 'party', 'event_date', 'total_amount', 'classification', 'created_by']
+    list_filter = ['classification', 'event_date']
+    inlines = [PurchaseLineInline]
 
-@admin.register(Sale)
+# --- Sale Admin ---
+class SaleLineInline(admin.TabularInline):
+    model = SaleLine
+    extra = 1
+
 class SaleAdmin(admin.ModelAdmin):
-    list_display = ('farm', 'customer', 'item', 'quantity', 'total_amount', 'event_date', 'classification')
-    list_filter = ('classification', 'farm')
+    list_display = ['id', 'farm', 'party', 'event_date', 'total_amount', 'classification', 'created_by']
+    list_filter = ['classification', 'event_date']
+    inlines = [SaleLineInline]
 
-@admin.register(Expense)
+# --- Expense Admin ---
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ('farm', 'category', 'amount', 'event_date', 'classification')
-    list_filter = ('category', 'classification', 'farm')
+    list_display = ['id', 'farm', 'party', 'category', 'amount', 'event_date', 'classification', 'created_by']
+    list_filter = ['category', 'classification', 'event_date']
+
+# Register the models
+admin.site.register(Purchase, PurchaseAdmin)
+admin.site.register(Sale, SaleAdmin)
+admin.site.register(Expense, ExpenseAdmin)

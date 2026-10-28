@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from apps.accounts.models import Account
+from core.models import BaseModel
 
 class Farm(models.Model):
     """
@@ -74,3 +75,39 @@ class FarmSetting(models.Model):
 
     def __str__(self):
         return f"Settings for {self.farm.name}"
+
+# --- SPRINT 3 MODELS: OPENING POSITION ---
+
+class OpeningPosition(BaseModel):
+    """
+    The starting snapshot of a farm (birds, stock, balances).
+    Inherits from BaseModel to capture event_date (opening date), 
+    entry_timestamp, and created_by automatically.
+    """
+    farm = models.ForeignKey(Farm, on_delete=models.CASCADE, related_name='opening_positions')
+    status = models.CharField(max_length=20, choices=[('DRAFT', 'Draft'), ('CONFIRMED', 'Confirmed')], default='DRAFT')
+
+    class Meta:
+        db_table = 'farms_opening_positions'
+
+    def __str__(self):
+        return f"Opening Position for {self.farm.name} on {self.event_date}"
+
+class OpeningFlockLine(models.Model):
+    """Starting bird count for a specific flock."""
+    position = models.ForeignKey(OpeningPosition, on_delete=models.CASCADE, related_name='flock_lines')
+    identifier = models.CharField(max_length=50, help_text="e.g., 'Flock A'")
+    initial_count = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = 'farms_opening_flock_lines'
+
+class OpeningStockLine(models.Model):
+    """Starting stock quantity for a specific item."""
+    position = models.ForeignKey(OpeningPosition, on_delete=models.CASCADE, related_name='stock_lines')
+    # String reference prevents circular import with apps.catalog.models
+    item = models.ForeignKey('catalog.Item', on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'farms_opening_stock_lines'
