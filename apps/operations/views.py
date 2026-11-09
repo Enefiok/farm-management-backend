@@ -12,7 +12,8 @@ class FlockListCreateView(generics.ListCreateAPIView):
         return Flock.objects.filter(farm_id=self.kwargs['farm_pk']).order_by('-created_at', '-id')
 
     def perform_create(self, serializer):
-        serializer.save(farm_id=self.kwargs['farm_pk'], created_by=self.request.user)
+        # FIX: Flock model does NOT have a created_by field. Only pass farm_id.
+        serializer.save(farm_id=self.kwargs['farm_pk'])
 
 
 class ProductionRecordListCreateView(generics.ListCreateAPIView):

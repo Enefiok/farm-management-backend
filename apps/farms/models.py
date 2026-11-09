@@ -7,6 +7,11 @@ class Farm(models.Model):
     """
     A specific farm workspace. Belongs to an Account.
     """
+    class FarmTypeChoices(models.TextChoices):
+        LAYERS = 'layers', 'Egg Production (Layers)'
+        BROILERS = 'broilers', 'Meat Birds (Broilers)'
+        BOTH = 'both', 'Both Layers & Broilers'
+
     account = models.ForeignKey(
         Account, 
         on_delete=models.CASCADE, 
@@ -15,6 +20,15 @@ class Farm(models.Model):
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255, blank=True, null=True)
     contact_info = models.CharField(max_length=255, blank=True, null=True)
+    
+    # NEW FIELD: Farm Type
+    farm_type = models.CharField(
+        max_length=20,
+        choices=FarmTypeChoices.choices,
+        default=FarmTypeChoices.LAYERS,
+        help_text="Type of farm operations"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

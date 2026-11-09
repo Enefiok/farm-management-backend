@@ -10,9 +10,17 @@ class CreateFarmSerializer(serializers.ModelSerializer):
     timezone = serializers.CharField(max_length=50, required=False, default='Africa/Lagos', allow_blank=True)
     unit_system = serializers.CharField(max_length=10, required=False, default='metric', allow_blank=True)
     
+    # NEW FIELD: Expose farm_type to the API
+    farm_type = serializers.ChoiceField(
+        choices=Farm.FarmTypeChoices.choices, 
+        required=False, 
+        default=Farm.FarmTypeChoices.LAYERS
+    )
+    
     class Meta:
         model = Farm
-        fields = ['name', 'location', 'contact_info', 'currency', 'timezone', 'unit_system']
+        # Added 'farm_type' to the fields list
+        fields = ['name', 'location', 'contact_info', 'currency', 'timezone', 'unit_system', 'farm_type']
     
     def validate_currency(self, value):
         if not value or not value.strip():

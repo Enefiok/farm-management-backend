@@ -36,9 +36,10 @@ class Flock(models.Model):
 
     @property
     def current_count(self):
-        """Calculates current birds: initial_count minus total mortality."""
+        """Calculates current birds: initial_count minus mortality AND sold birds."""
         mortality = self.activities.filter(activity_type='MORTALITY').aggregate(total=models.Sum('quantity'))['total'] or 0
-        return max(0, self.initial_count - int(mortality))
+        sold = self.sales.aggregate(total=models.Sum('quantity'))['total'] or 0
+        return max(0, self.initial_count - int(mortality) - int(sold))
 
     @property
     def mortality_rate(self):
@@ -57,6 +58,10 @@ class ProductionRecord(BaseModel):
     quantity_collected = models.DecimalField(max_digits=10, decimal_places=2)
     quantity_damaged = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     quantity_saleable = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # NEW: Unit field for packaging
+    unit = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. Loose eggs, Tray, Crate") 
+    
     notes = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -69,7 +74,7 @@ class FarmActivity(BaseModel):
         FEED_CONSUMPTION = 'FEED_CONSUMPTION', 'Feed Consumption'
         MORTALITY = 'MORTALITY', 'Mortality'
         VACCINATION = 'VACCINATION', 'Vaccination'
-        MEDICATION = 'MEDICATION', 'Medication'  # <-- ADDED THIS FOR FRONTEND
+        MEDICATION = 'MEDICATION', 'Medication'
         FLOCK_CHANGE = 'FLOCK_CHANGE', 'Flock Change'
         LOSS = 'LOSS', 'Loss/Spoilage'
         OTHER = 'OTHER', 'Other'

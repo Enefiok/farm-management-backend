@@ -1,5 +1,6 @@
 from django.db import models
 from apps.farms.models import Farm
+from core.models import BaseModel
 
 class Unit(models.Model):
     """
@@ -17,12 +18,13 @@ class Unit(models.Model):
 
 class Item(models.Model):
     """
-    Tracked material/product (Feed, Medicine, Eggs, Supplies).
+    Tracked material/product (Feed, Medicine, Eggs, Supplies, Livestock).
     """
     class CategoryChoices(models.TextChoices):
         FEED = 'FEED', 'Feed'
         MEDICINE = 'MEDICINE', 'Medicine/Vaccine'
         EGG = 'EGG', 'Egg Product'
+        LIVESTOCK = 'LIVESTOCK', 'Livestock/Birds'
         SUPPLY = 'SUPPLY', 'General Supply'
         EQUIPMENT = 'EQUIPMENT', 'Equipment'
 
@@ -31,6 +33,7 @@ class Item(models.Model):
     category = models.CharField(max_length=20, choices=CategoryChoices.choices)
     base_unit = models.ForeignKey(Unit, on_delete=models.PROTECT, related_name='base_items')
     is_stock_tracked = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True) 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -39,6 +42,16 @@ class Item(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.base_unit})"
+
+    @property
+    def current_stock(self):
+        """
+        Calculates current stock by summing IN movements and subtracting OUT movements.
+        This is the core of the Stock Ledger (US-601).
+        """
+        in_stock = self.stock_movements.filter(direction='IN').aggregate(total=models.Sum('quantity'))['total'] or 0
+        out_stock = self.stock_movements.filter(direction='OUT').aggregate(total=models.Sum('quantity'))['total'] or 0
+        return in_stock - out_stock
 
 class UnitConversion(models.Model):
     """
@@ -78,3 +91,46 @@ class Party(models.Model):
 
     def __str__(self):
         return self.name
+
+class StockMovement(BaseModel):
+    """
+    The Stock Ledger. Every change to stock is recorded here.
+    We never edit a 'current stock' number; we only add movements.
+    """
+    DIRECTION_IN = 'IN'
+    DIRECTION_OUT = 'OUT'
+    DIRECTION_CHOICES = [
+        (DIRECTION_IN, 'In'),
+        (DIRECTION_OUT, 'Out'),
+    ]
+
+    SOURCE_PURCHASE = 'PURCHASE'
+    SOURCE_SALE = 'SALE'
+    SOURCE_PRODUCTION = 'PRODUCTION'
+    SOURCE_ACTIVITY = 'ACTIVITY'
+    SOURCE_ADJUSTMENT = 'ADJUSTMENT'
+    SOURCE_OPENING = 'OPENING'
+    SOURCE_CHOICES = [
+        (SOURCE_PURCHASE, 'Purchase'),
+        (SOURCE_SALE, 'Sale'),
+        (SOURCE_PRODUCTION, 'Production'),
+        (SOURCE_ACTIVITY, 'Activity'),
+        (SOURCE_ADJUSTMENT, 'Adjustment'),
+        (SOURCE_OPENING, 'Opening'),
+    ]
+
+    farm = models.ForeignKey(Farm, on_delete=models.CASCADE, related_name='stock_movements')
+    item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name='stock_movements')
+    direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4)
+    source_type = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    source_id = models.PositiveIntegerField(null=True, blank=True, help_text="ID of the Purchase, Sale, etc.")
+    event_date = models.DateField()
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'catalog_stock_movements'
+        ordering = ['-event_date', '-entry_timestamp']
+
+    def __str__(self):
+        return f"{self.direction} {self.quantity} {self.item.name} ({self.source_type})"

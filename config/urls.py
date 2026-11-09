@@ -13,15 +13,17 @@ from apps.accounts.views import (
 )
 from apps.farms.views import CreateFarmView, OpeningPositionCreateView
 from apps.catalog.views import (
-    UnitListCreateView, ItemListCreateView, 
-    UnitConversionListCreateView, PartyListCreateView
+    UnitListCreateView, ItemListCreateView, ItemRetrieveUpdateDestroyView,
+    UnitConversionListCreateView, UnitConversionRetrieveUpdateDestroyView,
+    PartyListCreateView, StockMovementListView
 )
 from apps.operations.views import (
     FlockListCreateView, ProductionRecordListCreateView, FarmActivityListCreateView
 )
 from apps.transactions.views import (
-    PurchaseListCreateView, SaleListCreateView, ExpenseListCreateView
+    PurchaseListCreateView, SaleListCreateView, SaleRetrieveUpdateDestroyView, ExpenseListCreateView, PaymentCreateView
 )
+from apps.audit.views import AdjustmentCreateView, AdjustmentListView
 
 
 @api_view(['GET'])
@@ -62,7 +64,19 @@ urlpatterns = [
     # Catalog Endpoints
     path('api/units/', UnitListCreateView.as_view(), name='units'),  # Global units
     path('api/farms/<int:farm_pk>/items/', ItemListCreateView.as_view(), name='farm-items'),
+    
+    # Item Detail (Edit and Archive)
+    path('api/farms/<int:farm_pk>/items/<int:pk>/', ItemRetrieveUpdateDestroyView.as_view(), name='item-detail'),
+    
+    # Stock History for an item
+    path('api/farms/<int:farm_pk>/items/<int:item_pk>/movements/', StockMovementListView.as_view(), name='item-stock-movements'),
+    
+    # Unit Conversions (List & Create)
     path('api/farms/<int:farm_pk>/items/<int:item_pk>/conversions/', UnitConversionListCreateView.as_view(), name='item-conversions'),
+    
+    # NEW: Unit Conversion Detail (Edit/Delete a single conversion)
+    path('api/farms/<int:farm_pk>/items/<int:item_pk>/conversions/<int:pk>/', UnitConversionRetrieveUpdateDestroyView.as_view(), name='conversion-detail'),
+    
     path('api/farms/<int:farm_pk>/parties/', PartyListCreateView.as_view(), name='farm-parties'),
     
     # Operations Endpoints (Scoped to Farm)
@@ -73,7 +87,18 @@ urlpatterns = [
     # Transactions Endpoints (Scoped to Farm)
     path('api/farms/<int:farm_pk>/purchases/', PurchaseListCreateView.as_view(), name='farm-purchases'),
     path('api/farms/<int:farm_pk>/sales/', SaleListCreateView.as_view(), name='farm-sales'),
+    
+    # Update/Delete single sale (Required for the Edit button to work)
+    path('api/farms/<int:farm_pk>/sales/<int:pk>/', SaleRetrieveUpdateDestroyView.as_view(), name='sale-detail'),
+    
     path('api/farms/<int:farm_pk>/expenses/', ExpenseListCreateView.as_view(), name='farm-expenses'),
+    
+    # Payment Endpoint (Scoped to Farm)
+    path('api/farms/<int:farm_pk>/payments/', PaymentCreateView.as_view(), name='farm-payments'),
+
+    # Audit/Adjustments Endpoints (Scoped to Farm)
+    path('api/farms/<int:farm_pk>/adjustments/', AdjustmentListView.as_view(), name='farm-adjustments'),
+    path('api/farms/<int:farm_pk>/adjustments/create/', AdjustmentCreateView.as_view(), name='farm-adjustment-create'),
     
     # OpenAPI Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
